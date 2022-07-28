@@ -28,6 +28,21 @@ void Mecanumbot::set_on()
     this->motor4->set_motor_on();
 }
 
+void Mecanumbot::get_encoder_data(uint gpio){
+    if( gpio == this->motor1->gpioEncOut)
+        this->motor1->get_encoder_data();
+    else if (gpio ==  this->motor2->gpioEncOut)
+        this->motor2->get_encoder_data();
+    else if (gpio ==  this->motor3->gpioEncOut)
+        this->motor3->get_encoder_data();
+    else if (gpio ==  this->motor4->gpioEncOut)
+        this->motor4->get_encoder_data();
+    // this->motor1->get_encoder_data();
+    // this->motor2->get_encoder_data();
+    // this->motor3->get_encoder_data();
+    // this->motor4->get_encoder_data();
+}
+
 void Mecanumbot::set_direction(int m1_speed, int m2_speed, int m3_speed, int m4_speed, uint direction)
 {
     switch (direction)

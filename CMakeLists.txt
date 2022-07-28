@@ -4,10 +4,12 @@ set(SOURCES
     motor_controller.cpp
     ${SRC_DIR}/bimotor.cpp
     ${SRC_DIR}/pwm.cpp
+    ${SRC_DIR}/events.cpp
     ${SRC_DIR}/mecanumbot.cpp
     ${INCLUDE_DIR}/bimotor.hpp 
-    ${INCLUDE_DIR}/mecanumbot.hpp
     ${INCLUDE_DIR}/pwm.hpp
+    ${INCLUDE_DIR}/events.hpp
+    ${INCLUDE_DIR}/mecanumbot.hpp
 )
 cmake_minimum_required(VERSION 3.13)
 include(pico_sdk_import.cmake)
