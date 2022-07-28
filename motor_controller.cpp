@@ -63,7 +63,7 @@ int main()
                     printf("Moving Left ... \n");
                     gpio_put(PICO_DEFAULT_LED_PIN, 0);
                 break;
-                case 's':
+                case 'x':
                     mecanumbot->set_on();
                     mecanumbot->set_direction(MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MECANUMBOT_DIRECTION_BACKWARD);
                     printf("Moving Backward ... \n");
@@ -75,7 +75,43 @@ int main()
                     printf("Moving Right ... \n");
                     gpio_put(PICO_DEFAULT_LED_PIN, 0);
                 break;
-                case '0':
+                case 'q':
+                    mecanumbot->set_on();
+                    mecanumbot->set_direction(MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MECANUMBOT_DIRECTION_FORWARD_LEFT);
+                    printf("Moving Forward Left ... \n");
+                    gpio_put(PICO_DEFAULT_LED_PIN, 0);
+                break;
+                case 'e':
+                    mecanumbot->set_on();
+                    mecanumbot->set_direction(MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MECANUMBOT_DIRECTION_FORWARD_RIGHT);
+                    printf("Moving Forward Right ... \n");
+                    gpio_put(PICO_DEFAULT_LED_PIN, 0);
+                break;
+                case 'z':
+                    mecanumbot->set_on();
+                    mecanumbot->set_direction(MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MECANUMBOT_DIRECTION_BACKWARD_LEFT);
+                    printf("Moving Backward Left ... \n");
+                    gpio_put(PICO_DEFAULT_LED_PIN, 0);
+                break;
+                case 'c':
+                    mecanumbot->set_on();
+                    mecanumbot->set_direction(MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MECANUMBOT_DIRECTION_BACKWARD_RIGHT);
+                    printf("Moving Backward Right ... \n");
+                    gpio_put(PICO_DEFAULT_LED_PIN, 0);
+                break;
+                case 'r':
+                    mecanumbot->set_on();
+                    mecanumbot->set_direction(MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MECANUMBOT_DIRECTION_CLOCKWISE);
+                    printf("Rotating Clockwise ... \n");
+                    gpio_put(PICO_DEFAULT_LED_PIN, 0);
+                break;
+                case 't':
+                    mecanumbot->set_on();
+                    mecanumbot->set_direction(MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MOTOR_SPEED, MECANUMBOT_DIRECTION_COUNTER_CLOCKWISE);
+                    printf("Rotating Counter Clockwise ... \n");
+                    gpio_put(PICO_DEFAULT_LED_PIN, 0);
+                break;
+                case 's':
                     mecanumbot->set_off();
                     gpio_put(PICO_DEFAULT_LED_PIN, 1);
                 break;

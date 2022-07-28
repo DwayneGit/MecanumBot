@@ -50,6 +50,7 @@ void BiMotor::set_motor_on()
 
 void BiMotor::set_motor_off()
 {
+    this->set_motor_speed(0, BIMOTOR_FORWARD);
     this->on = false;
     pwm_set_enabled(this->slice, this->on);
 }
@@ -86,5 +87,5 @@ void BiMotor::get_encoder_data(){
                 this->encoderTickCount++;
             }
         }
-        printf("%i %i\n", this->motorNum, this->encoderTickCount);
+        // printf("%i %i\n", this->motorNum, this->encoderTickCount);
 }
