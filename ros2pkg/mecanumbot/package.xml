@@ -4,7 +4,7 @@
   <name>mecanumbot</name>
   <version>0.0.0</version>
   <description>TODO: Package description</description>
-  <maintainer email="dewilliams0327@gmail.com">ubuntu</maintainer>
+  <maintainer email="dewilliam0327@gmail.com">robodev</maintainer>
   <license>TODO: License declaration</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
