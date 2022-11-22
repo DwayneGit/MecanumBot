@@ -1,7 +1,8 @@
 {
-    "files.associations": {
-        "ostream": "cpp",
-        "iostream": "cpp",
-        "random": "cpp"
-    }
+  "files.associations": {
+    "ostream": "cpp",
+    "iostream": "cpp",
+    "random": "cpp"
+  },
+  "cmake.sourceDirectory": "${workspaceFolder}/pico_motor_controller"
 }
