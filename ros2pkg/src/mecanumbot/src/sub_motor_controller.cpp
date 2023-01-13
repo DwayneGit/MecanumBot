@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
+#include "geometry_msgs/msg/twist.hpp"
 using std::placeholders::_1;
 
 class SubMotorController : public rclcpp::Node
@@ -48,17 +48,17 @@ class SubMotorController : public rclcpp::Node
                 return;
             }
 
-            subscription_ = this->create_subscription<std_msgs::msg::String>(
-            "motor_control", 10, std::bind(&SubMotorController::motor_control_cb, this, _1));
+            subscription_ = this->create_subscription<geometry_msgs::msg::Twist>(
+            "mecanumbot/cmd_vel", 10, std::bind(&SubMotorController::motor_control_cb, this, _1));
         }
 
     private:
-        void motor_control_cb(const std_msgs::msg::String & msg) const
+        void motor_control_cb(const geometry_msgs::msg::Twist & msg) const
         {
             RCLCPP_INFO(this->get_logger(), "I heard: '%s'", msg.data.c_str());
-            write(this->serial_port_, msg, sizeof(msg));
+            write(this->serial_port_, msg.data.c_str(), sizeof(msg.data.c_str()));
         }
-        rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
+        rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr subscription_;
         int serial_port_;
         struct termios tty_;
 };

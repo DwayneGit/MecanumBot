@@ -1,0 +1,14 @@
+{
+  "files.associations": {
+    "twist.h": "c",
+    "twist__struct.h": "c",
+    "twist__functions.h": "c",
+    "twist__type_support.h": "c",
+    "mecanumbot.h": "c",
+    "bimotor.h": "c"
+  },
+  // "cmake.sourceDirectory": "${workspaceFolder}/pico_motor_controller",
+  "cmake.configureEnvironment": {
+    "PICO_SDK_PATH": "/home/robodev/pico/pico-sdk"
+  }
+}
