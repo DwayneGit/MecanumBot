@@ -21,26 +21,6 @@
 #define UART_TX_PIN 16
 #define UART_RX_PIN 17
 
-#define BRIDGE1_ENA 8
-#define BRIDGE1_IN1 7
-#define BRIDGE1_IN2 6
-#define BRIDGE1_ENCA 18
-
-#define BRIDGE1_ENB 2
-#define BRIDGE1_IN3 4
-#define BRIDGE1_IN4 3
-#define BRIDGE1_ENCB 19
-
-#define BRIDGE2_ENA 10
-#define BRIDGE2_IN1 11
-#define BRIDGE2_IN2 12
-#define BRIDGE2_ENCA 20
-
-#define BRIDGE2_ENB 15
-#define BRIDGE2_IN3 13
-#define BRIDGE2_IN4 14
-#define BRIDGE2_ENCB 21
-
 static int chars_rxed = 0;
 
 struct Mecanumbot
@@ -51,14 +31,15 @@ struct Mecanumbot
     struct BiMotor* motor2;
     struct BiMotor* motor3;
     struct BiMotor* motor4;
-    void (*set_on)(struct Mecanumbot *this);
-    void (*set_off)(struct Mecanumbot *this);
-    void (*get_encoder_data)(struct Mecanumbot *this,uint gpio);
-    void (*set_direction)(struct Mecanumbot *this,int m1_speed, int m2_speed, int m3_speed, int m4_speed, uint direction);
-
 };
 
-struct Mecanumbot * mecanumbot_new(
+void set_on(struct Mecanumbot *this);
+void set_off(struct Mecanumbot *this);
+void get_encoder_robot_data(struct Mecanumbot *this, uint gpio);
+void set_direction(struct Mecanumbot *this, double linear_x, double linear_y, double angular_z);
+
+void mecanumbot_new(
+    struct Mecanumbot ** _mbot,
     struct BiMotor *m1, 
     struct BiMotor *m2, 
     struct BiMotor *m3, 
