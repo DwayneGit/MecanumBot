@@ -1,6 +1,6 @@
-#include "../include/bimotor.h"
-#include "../include/pwm.h"
-#include "../include/events.h"
+#include "../include/micro_ros_motor_ctrl/bimotor.h"
+#include "../include/micro_ros_motor_ctrl/pwm.h"
+#include "../include/micro_ros_motor_ctrl/events.h"
 
 struct BiMotor bimotor_new(int motNum, uint gpioEn, uint gpioFor, uint gpioBack, uint gpioEncoderOut, uint frequency)
 {
@@ -74,22 +74,24 @@ void set_motor_direction(struct BiMotor *this, bool direction)
     this->direction = direction;
 }
 
-void get_encoder_data(struct BiMotor *this){
-        if(this->direction == BIMOTOR_BACKWARD){
-            if(this->encoderTickCount == ENCODER_MIN){
-                this->encoderTickCount == ENCODER_MAX;
-            }
-            else {
-                this->encoderTickCount--;
-            }
+void get_encoder_data(struct BiMotor *this, uint gpio){
+    if(gpio != this->gpioEncOut) return;
+
+    if(this->direction == BIMOTOR_BACKWARD){
+        if(this->encoderTickCount == ENCODER_MIN){
+            this->encoderTickCount == ENCODER_MAX;
         }
         else {
-            if(this->encoderTickCount == ENCODER_MAX ){
-                this->encoderTickCount == ENCODER_MIN;
-            }
-            else {
-                this->encoderTickCount++;
-            }
+            this->encoderTickCount--;
         }
-        printf("%i %i\n", this->motorNum, this->encoderTickCount);
+    }
+    else {
+        if(this->encoderTickCount == ENCODER_MAX ){
+            this->encoderTickCount == ENCODER_MIN;
+        }
+        else {
+            this->encoderTickCount++;
+        }
+    }
+    // printf("%i %i\n\r", this->motorNum, this->encoderTickCount);
 }

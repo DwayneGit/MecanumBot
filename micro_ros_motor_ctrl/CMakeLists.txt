@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 
 set(MICRO_ROS_PICO_SDK_DIR $ENV{HOME}/micro_ros_ws/src/micro_ros_raspberrypi_pico_sdk)
-set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/micro_ros_motor_ctrl)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SOURCES
     micro_ros_motor_ctrl.c

@@ -21,6 +21,8 @@
 #define UART_TX_PIN 16
 #define UART_RX_PIN 17
 
+#define MAX_VEL 90.0
+
 static int chars_rxed = 0;
 
 struct Mecanumbot
@@ -35,8 +37,7 @@ struct Mecanumbot
 
 void set_on(struct Mecanumbot *this);
 void set_off(struct Mecanumbot *this);
-void get_encoder_robot_data(struct Mecanumbot *this, uint gpio);
-void set_direction(struct Mecanumbot *this, double linear_x, double linear_y, double angular_z);
+void set_direction(struct Mecanumbot *this, double linear_x, double angular_z);
 
 void mecanumbot_new(
     struct Mecanumbot ** _mbot,

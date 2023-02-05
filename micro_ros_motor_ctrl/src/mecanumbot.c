@@ -1,4 +1,4 @@
-#include "../include/mecanumbot.h"
+#include "../include/micro_ros_motor_ctrl/mecanumbot.h"
 #include <stdlib.h>
 #include <math.h>
 
@@ -36,46 +36,31 @@ void set_on(struct Mecanumbot *this)
     set_motor_on(this->motor4);
 }
 
-void get_encoder_robot_data(struct Mecanumbot *this, uint gpio){
-    if(gpio == this->motor1->gpioEncOut)
-        get_encoder_data(this->motor1);
-    else if (gpio == this->motor2->gpioEncOut)
-        get_encoder_data(this->motor2);
-    else if (gpio == this->motor3->gpioEncOut)
-        get_encoder_data(this->motor3);
-    else if (gpio == this->motor4->gpioEncOut)
-        get_encoder_data(this->motor4);
-    // get_encoder_data();
-    // get_encoder_data();
-    // get_encoder_data();
-    // get_encoder_data();
-}
-
-void set_direction(struct Mecanumbot *this, double linear_x, double linear_y, double angular_z)
+void set_direction(struct Mecanumbot *this, double linear_x, double angular_z)
 {
     int direction = MECANUMBOT_DIRECTION_FORWARD;
 
-    if(linear_x > 0 && linear_y == 0 && angular_z == 0)
+    if(linear_x > 0 && angular_z == 0)
         direction = MECANUMBOT_DIRECTION_FORWARD;
-    else if(linear_x < 0 && linear_y == 0 && angular_z == 0)
+    else if(linear_x < 0 && angular_z == 0)
         direction = MECANUMBOT_DIRECTION_BACKWARD;
-    else if(linear_x == 0 && linear_y > 0 && angular_z == 0)
+    else if(linear_x == 0 && angular_z > 0)
         direction = MECANUMBOT_DIRECTION_RIGHT;
-    else if(linear_x == 0 && linear_y < 0 && angular_z == 0)
+    else if(linear_x == 0 && angular_z < 0)
         direction = MECANUMBOT_DIRECTION_LEFT;
-    else if(linear_x > 0 && linear_y > 0 && angular_z == 0)
+    else if(linear_x > 0 && angular_z > 0)
         direction = MECANUMBOT_DIRECTION_FORWARD_RIGHT;
-    else if(linear_x > 0 && linear_y < 0 && angular_z == 0)
+    else if(linear_x > 0 && angular_z < 0)
         direction = MECANUMBOT_DIRECTION_FORWARD_LEFT;
-    else if(linear_x < 0 && linear_y > 0 && angular_z == 0)
+    else if(linear_x < 0 && angular_z > 0)
         direction = MECANUMBOT_DIRECTION_BACKWARD_RIGHT;
-    else if(linear_x < 0 && linear_y < 0 && angular_z == 0)
+    else if(linear_x < 0 && angular_z < 0)
         direction = MECANUMBOT_DIRECTION_BACKWARD_LEFT;
         
-    double x_vel = fabs(linear_x);
-    double y_vel = fabs(linear_y);
+    double x_vel = fmin(fabs(linear_x*60), MAX_VEL);
+    double z_vel = fmin(fabs(angular_z*60), MAX_VEL);
 
-    printf("x: %.2f, y: %.2f, a: %.2f\n", x_vel, y_vel, angular_z);
+    printf("x: %.2f, y: %.2f\n\r", x_vel, z_vel);
 
     switch (direction)
     {
@@ -92,16 +77,16 @@ void set_direction(struct Mecanumbot *this, double linear_x, double linear_y, do
         set_motor_speed(this->motor4, x_vel, BIMOTOR_BACKWARD);
         break;
     case MECANUMBOT_DIRECTION_RIGHT:
-        set_motor_speed(this->motor1, y_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor2, y_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor3, y_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor4, y_vel, BIMOTOR_BACKWARD);
+        set_motor_speed(this->motor1, z_vel, BIMOTOR_FORWARD);
+        set_motor_speed(this->motor2, z_vel, BIMOTOR_BACKWARD);
+        set_motor_speed(this->motor3, z_vel, BIMOTOR_FORWARD);
+        set_motor_speed(this->motor4, z_vel, BIMOTOR_BACKWARD);
         break;
     case MECANUMBOT_DIRECTION_LEFT:
-        set_motor_speed(this->motor1, y_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor2, y_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor3, y_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor4, y_vel, BIMOTOR_FORWARD);
+        set_motor_speed(this->motor1, z_vel, BIMOTOR_BACKWARD);
+        set_motor_speed(this->motor2, z_vel, BIMOTOR_FORWARD);
+        set_motor_speed(this->motor3, z_vel, BIMOTOR_BACKWARD);
+        set_motor_speed(this->motor4, z_vel, BIMOTOR_FORWARD);
         break;
     case MECANUMBOT_DIRECTION_FORWARD_RIGHT:
         set_motor_speed(this->motor1, x_vel, BIMOTOR_FORWARD);
