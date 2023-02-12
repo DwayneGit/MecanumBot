@@ -23,7 +23,7 @@ struct BiMotor
     uint speed;
     uint freq;
     uint resolution;
-    uint encoderTickCount;
+    int16_t encoderTickCount;
     int motorNum;
     bool on;
 };

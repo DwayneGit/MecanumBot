@@ -78,20 +78,14 @@ void get_encoder_data(struct BiMotor *this, uint gpio){
     if(gpio != this->gpioEncOut) return;
 
     if(this->direction == BIMOTOR_BACKWARD){
-        if(this->encoderTickCount == ENCODER_MIN){
+        if(this->encoderTickCount == ENCODER_MIN)
             this->encoderTickCount == ENCODER_MAX;
-        }
-        else {
-            this->encoderTickCount--;
-        }
+        else this->encoderTickCount--;
     }
     else {
-        if(this->encoderTickCount == ENCODER_MAX ){
+        if(this->encoderTickCount == ENCODER_MAX)
             this->encoderTickCount == ENCODER_MIN;
-        }
-        else {
-            this->encoderTickCount++;
-        }
+        else this->encoderTickCount++;
     }
     // printf("%i %i\n\r", this->motorNum, this->encoderTickCount);
 }

@@ -33,6 +33,7 @@ add_executable(micro_ros_motor_ctrl
 target_link_libraries(micro_ros_motor_ctrl
     pico_stdlib
     microros
+    pico_multicore
     hardware_pwm
 )
 

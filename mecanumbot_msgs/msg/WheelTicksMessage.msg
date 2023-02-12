@@ -1,0 +1,4 @@
+int16 wheel1_tick
+int16 wheel2_tick
+int16 wheel3_tick
+int16 wheel4_tick

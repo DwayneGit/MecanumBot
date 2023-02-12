@@ -7,13 +7,15 @@
 #include <std_msgs/msg/int16.h>
 #include <geometry_msgs/msg/twist.h>
 #include <rmw_microros/rmw_microros.h>
+#include <mecanumbot_msgs/msg/wheel_ticks_message.h>
 
 #include "pico/stdlib.h"
+#include "pico/multicore.h"
 
 #include "include/micro_ros_motor_ctrl/mecanumbot.h"
 #include "include/micro_ros_motor_ctrl/pico_uart_transports.h"
 
-#define BRIDGE1_ENA 8
+#define BRIDGE1_ENA 8 
 #define BRIDGE1_IN1 7
 #define BRIDGE1_IN2 6
 #define BRIDGE1_ENCA 18
@@ -33,28 +35,23 @@
 #define BRIDGE2_IN4 14
 #define BRIDGE2_ENCB 21
 
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Aborting.\n\r",__LINE__,(int)temp_rc);}}
+#define PUBLISHER_NUMBER 4
+
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Aborting.\n",__LINE__,(int)temp_rc); return 1;}}
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Continuing.\n",__LINE__,(int)temp_rc);}}
 
 struct Mecanumbot *mecanumbot;
 
 rcl_subscription_t subscriber;
 
-rcl_publisher_t wheel1_pub;
-rcl_publisher_t wheel2_pub;
-rcl_publisher_t wheel3_pub;
-rcl_publisher_t wheel4_pub;
+rcl_publisher_t wheel_ticks_publisher;
 
 void subscription_callback(const void * msgin)
 {
     geometry_msgs__msg__Twist * msg = (geometry_msgs__msg__Twist *) msgin;
-    // if(msg->linear.x == 0 && msg->linear.y == 0 && msg->angular.z == 0)
-    //     set_off(mecanumbot);
-    // else {
-        set_on(mecanumbot);
-        set_direction(mecanumbot, msg->linear.x, msg->angular.z);
-    // }
+    set_on(mecanumbot);
+    set_direction(mecanumbot, msg->linear.x, msg->angular.z);
 }
-
 
 void wheel1_enc_tick(uint gpio, uint32_t events){
     get_encoder_data(mecanumbot->motor1, gpio);
@@ -63,9 +60,8 @@ void wheel1_enc_tick(uint gpio, uint32_t events){
     get_encoder_data(mecanumbot->motor4, gpio);
 }
 
-
 int main()
- {
+{
     rmw_uros_set_custom_transport(
 		true,
 		NULL,
@@ -85,11 +81,11 @@ int main()
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
-    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+    // gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    // gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
-    // Turn off FIFO's - we want to do this character by character
-    uart_set_fifo_enabled(UART_ID, false);
+    // // Turn off FIFO's - we want to do this character by character
+    // uart_set_fifo_enabled(UART_ID, false);
 
     gpio_put(PICO_DEFAULT_LED_PIN, 1);
 
@@ -106,67 +102,60 @@ int main()
 
     allocator = rcl_get_default_allocator();
     
-    rcl_ret_t rc;
-    rc = rclc_support_init(&support, 0, NULL, &allocator);
-    rclc_node_init_default(&node, "motor_controller", "", &support);
+    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+    RCCHECK(rclc_node_init_default(&node, "motor_controller", "", &support));
 
-    struct BiMotor mot1 = bimotor_new(1, BRIDGE1_ENB, BRIDGE1_IN3, BRIDGE1_IN4, BRIDGE1_ENCA, 2000);
-    struct BiMotor mot2 = bimotor_new(2, BRIDGE1_ENA, BRIDGE1_IN1, BRIDGE1_IN2, BRIDGE1_ENCB, 2000);
-    struct BiMotor mot3 = bimotor_new(3, BRIDGE2_ENA, BRIDGE2_IN1, BRIDGE2_IN2, BRIDGE2_ENCA, 2000);
-    struct BiMotor mot4 = bimotor_new(4, BRIDGE2_ENB, BRIDGE2_IN3, BRIDGE2_IN4, BRIDGE2_ENCB, 2000);
+    struct BiMotor mots[4] = {
+        bimotor_new(1, BRIDGE1_ENB, BRIDGE1_IN3, BRIDGE1_IN4, BRIDGE1_ENCA, 2000),
+        bimotor_new(2, BRIDGE1_ENA, BRIDGE1_IN1, BRIDGE1_IN2, BRIDGE1_ENCB, 2000),
+        bimotor_new(3, BRIDGE2_ENA, BRIDGE2_IN1, BRIDGE2_IN2, BRIDGE2_ENCA, 2000),
+        bimotor_new(4, BRIDGE2_ENB, BRIDGE2_IN3, BRIDGE2_IN4, BRIDGE2_ENCB, 2000),
+    };
 
-    mecanumbot_new(&mecanumbot, &mot1, &mot2, &mot3, &mot4);
+    mecanumbot_new(&mecanumbot, &mots[0], &mots[1], &mots[2], &mots[3]);
 
-    if (rc != RCL_RET_OK)
-    {
-        // Unreachable agent, exiting program.
-        return -1;
-    }
-
-    rclc_subscription_init_default(
+    RCCHECK(rclc_subscription_init_default(
         &subscriber,
         &node,
         ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
         "cmd_vel"
-    );
+    ));
 
-    const rosidl_message_type_support_t * int16_type_support = 
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16);
+    RCCHECK(rclc_publisher_init_default(
+        &wheel_ticks_publisher, 
+        &node, 
+        ROSIDL_GET_MSG_TYPE_SUPPORT(mecanumbot_msgs, msg, WheelTicksMessage), 
+        "wheel_ticks"
+    ));
 
-    rclc_publisher_init_default(&wheel1_pub, &node, int16_type_support, "wheel1_ticks");
-    rclc_publisher_init_default(&wheel2_pub, &node, int16_type_support, "wheel2_ticks");
-    rclc_publisher_init_default(&wheel3_pub, &node, int16_type_support, "wheel3_ticks");
-    rclc_publisher_init_default(&wheel4_pub, &node, int16_type_support, "wheel4_ticks");
-
-	rclc_executor_init(
+	RCCHECK(rclc_executor_init(
         &executor,
         &support.context, 
         1, 
         &allocator
-    );
+    ));
 
-    rclc_executor_add_subscription(
+    RCCHECK(rclc_executor_add_subscription(
         &executor, 
         &subscriber, 
         &twist_msg,
         &subscription_callback, 
         ON_NEW_DATA
-    );
-
+    ));
+    // printf("%i %i\n\r", ENCODER_MIN, ENCODER_MAX);
     // rclc_executor_spin(&executor)
+    mecanumbot_msgs__msg__WheelTicksMessage msg;
     while (true){
-        // rc = rcl_publish(&wheel1_pub, &mecanumbot->motor1->encoderTickCount, NULL);
-        // rc = rcl_publish(&wheel2_pub, &mecanumbot->motor2->encoderTickCount, NULL);
-        // rc = rcl_publish(&wheel3_pub, &mecanumbot->motor3->encoderTickCount, NULL);
-        // rc = rcl_publish(&wheel4_pub, &mecanumbot->motor4->encoderTickCount, NULL);
+        msg.wheel1_tick = mecanumbot->motor1->encoderTickCount;
+        msg.wheel2_tick = mecanumbot->motor2->encoderTickCount;
+        msg.wheel3_tick = mecanumbot->motor3->encoderTickCount;
+        msg.wheel4_tick = mecanumbot->motor4->encoderTickCount;
+        RCSOFTCHECK(rcl_publish(&wheel_ticks_publisher, &msg, NULL));
         rclc_executor_spin_some(&executor, 1000 * (1000 * 1000));
     }
 
 	RCCHECK(rcl_subscription_fini(&subscriber, &node));
-    RCCHECK(rcl_publisher_fini(&wheel1_pub, &node));
-    RCCHECK(rcl_publisher_fini(&wheel2_pub, &node));
-    RCCHECK(rcl_publisher_fini(&wheel3_pub, &node));
-    RCCHECK(rcl_publisher_fini(&wheel4_pub, &node));
+    RCCHECK(rcl_publisher_fini(&wheel_ticks_publisher, &node));    
 	RCCHECK(rcl_node_fini(&node));
 
     return 0;
