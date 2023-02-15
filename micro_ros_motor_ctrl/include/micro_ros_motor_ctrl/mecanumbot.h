@@ -21,7 +21,8 @@
 #define UART_TX_PIN 16
 #define UART_RX_PIN 17
 
-#define MAX_VEL 90.0
+#define MAX_VEL 100.0
+#define MIN_VEL 45.0
 
 static int chars_rxed = 0;
 

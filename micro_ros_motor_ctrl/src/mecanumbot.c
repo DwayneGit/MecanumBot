@@ -57,10 +57,13 @@ void set_direction(struct Mecanumbot *this, double linear_x, double angular_z)
     else if(linear_x < 0 && angular_z < 0)
         direction = MECANUMBOT_DIRECTION_BACKWARD_LEFT;
         
-    double x_vel = fmin(fabs(linear_x*60), MAX_VEL);
-    double z_vel = fmin(fabs(angular_z*60), MAX_VEL);
+    double x_vel = fmin(fabs(linear_x*MAX_VEL), MAX_VEL);
+    double z_vel = fmin(fabs(angular_z*MAX_VEL), MAX_VEL);
 
     printf("x: %.2f, y: %.2f\n\r", x_vel, z_vel);
+
+    x_vel = x_vel >= MIN_VEL? x_vel: 0.0;
+    z_vel = z_vel >= MIN_VEL? z_vel: 0.0;
 
     switch (direction)
     {
