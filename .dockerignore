@@ -1,0 +1,6 @@
+micro_ros_motor_ctrl
+pico_motor_controller
+**/build/*
+**/install
+**/log
+**/.vscode
