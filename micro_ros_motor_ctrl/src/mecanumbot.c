@@ -13,7 +13,19 @@ void mecanumbot_new(struct Mecanumbot ** _mbot, struct BiMotor *m1, struct BiMot
         mbot->motor3 = m3;
         mbot->motor4 = m4;
     }
+	printf("%d %d %d %d\n\r",
+        mbot->motor1->encoderTickCount,
+        mbot->motor2->encoderTickCount,
+        mbot->motor3->encoderTickCount,
+        mbot->motor4->encoderTickCount
+    );
     *_mbot = mbot;
+	// printf("%d\n\r",
+    //     _mbot->motor1->encoderTickCount,
+    //     _mbot->motor1->encoderTickCount,
+    //     _mbot->motor1->encoderTickCount,
+    //     _mbot->motor1->encoderTickCount
+    // );
 }
 
 void set_off(struct Mecanumbot *this)

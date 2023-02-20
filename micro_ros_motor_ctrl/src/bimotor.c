@@ -74,9 +74,7 @@ void set_motor_direction(struct BiMotor *this, bool direction)
     this->direction = direction;
 }
 
-void get_encoder_data(struct BiMotor *this, uint gpio){
-    if(gpio != this->gpioEncOut) return;
-
+void get_encoder_data(struct BiMotor *this){
     if(this->direction == BIMOTOR_BACKWARD){
         if(this->encoderTickCount == ENCODER_MIN)
             this->encoderTickCount == ENCODER_MAX;

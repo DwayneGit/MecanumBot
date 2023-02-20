@@ -30,7 +30,7 @@ struct BiMotor
 
 void set_motor_on(struct BiMotor *this);
 void set_motor_off(struct BiMotor *this);
-void get_encoder_data(struct BiMotor *this, uint gpio);
+void get_encoder_data(struct BiMotor *this);
 void set_motor_direction(struct BiMotor *this, bool direction);
 void set_motor_speed(struct BiMotor *this, double vel, bool direction);
 struct BiMotor bimotor_new(
