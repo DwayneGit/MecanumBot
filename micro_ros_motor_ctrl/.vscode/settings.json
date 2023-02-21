@@ -6,7 +6,8 @@
     "twist__type_support.h": "c",
     "mecanumbot.h": "c",
     "bimotor.h": "c",
-    "pwm.h": "c"
+    "pwm.h": "c",
+    "stdio.h": "c"
   },
   // "cmake.sourceDirectory": "${workspaceFolder}/pico_motor_controller",
   "cmake.configureEnvironment": {

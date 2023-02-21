@@ -6,6 +6,7 @@ set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/micro_ros_motor_ctrl)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SOURCES
     micro_ros_motor_ctrl.c
+    # micro_ros_motor_ctrl_multi_threaded.c
     ${SRC_DIR}/pwm.c
     ${SRC_DIR}/events.c
     ${SRC_DIR}/bimotor.c

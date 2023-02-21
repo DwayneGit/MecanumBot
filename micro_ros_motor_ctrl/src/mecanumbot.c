@@ -2,30 +2,29 @@
 #include <stdlib.h>
 #include <math.h>
 
-void mecanumbot_new(struct Mecanumbot ** _mbot, struct BiMotor *m1, struct BiMotor *m2, struct BiMotor *m3, struct BiMotor *m4)
+struct Mecanumbot * mecanumbot_init()
 {
-    struct Mecanumbot * mbot = malloc(sizeof(*_mbot));
-    if (mbot) {
-        mbot->direction = MECANUMBOT_DIRECTION_FORWARD;
-        mbot->on = false;
-        mbot->motor1 = m1;
-        mbot->motor2 = m2;
-        mbot->motor3 = m3;
-        mbot->motor4 = m4;
-    }
-	printf("%d %d %d %d\n\r",
-        mbot->motor1->encoderTickCount,
-        mbot->motor2->encoderTickCount,
-        mbot->motor3->encoderTickCount,
-        mbot->motor4->encoderTickCount
-    );
-    *_mbot = mbot;
-	// printf("%d\n\r",
-    //     _mbot->motor1->encoderTickCount,
-    //     _mbot->motor1->encoderTickCount,
-    //     _mbot->motor1->encoderTickCount,
-    //     _mbot->motor1->encoderTickCount
-    // );
+    struct Mecanumbot * mbot;
+    mbot = (struct Mecanumbot *) malloc(sizeof(struct Mecanumbot));
+
+    mbot->on = false;
+    mbot->direction = MECANUMBOT_DIRECTION_FORWARD;
+
+    mbot->motor1 = bimotor_init(1, BRIDGE1_ENB, BRIDGE1_IN3, BRIDGE1_IN4, BRIDGE1_ENCA, 2000);
+    mbot->motor2 = bimotor_init(2, BRIDGE1_ENA, BRIDGE1_IN1, BRIDGE1_IN2, BRIDGE1_ENCB, 2000);
+    mbot->motor3 = bimotor_init(3, BRIDGE2_ENA, BRIDGE2_IN1, BRIDGE2_IN2, BRIDGE2_ENCA, 2000);
+    mbot->motor4 = bimotor_init(4, BRIDGE2_ENB, BRIDGE2_IN3, BRIDGE2_IN4, BRIDGE2_ENCB, 2000);
+
+    return mbot;
+}
+
+void mecanumbot_destroy(struct Mecanumbot *this){
+    set_off(this);
+    bimotor_destroy(this->motor1);
+    bimotor_destroy(this->motor2);
+    bimotor_destroy(this->motor3);
+    bimotor_destroy(this->motor4);
+    free(this);
 }
 
 void set_off(struct Mecanumbot *this)
@@ -50,24 +49,22 @@ void set_on(struct Mecanumbot *this)
 
 void set_direction(struct Mecanumbot *this, double linear_x, double angular_z)
 {
-    int direction = MECANUMBOT_DIRECTION_FORWARD;
-
     if(linear_x > 0 && angular_z == 0)
-        direction = MECANUMBOT_DIRECTION_FORWARD;
+        this->direction = MECANUMBOT_DIRECTION_FORWARD;
     else if(linear_x < 0 && angular_z == 0)
-        direction = MECANUMBOT_DIRECTION_BACKWARD;
+        this->direction = MECANUMBOT_DIRECTION_BACKWARD;
     else if(linear_x == 0 && angular_z > 0)
-        direction = MECANUMBOT_DIRECTION_RIGHT;
+        this->direction = MECANUMBOT_DIRECTION_RIGHT;
     else if(linear_x == 0 && angular_z < 0)
-        direction = MECANUMBOT_DIRECTION_LEFT;
+        this->direction = MECANUMBOT_DIRECTION_LEFT;
     else if(linear_x > 0 && angular_z > 0)
-        direction = MECANUMBOT_DIRECTION_FORWARD_RIGHT;
+        this->direction = MECANUMBOT_DIRECTION_FORWARD_RIGHT;
     else if(linear_x > 0 && angular_z < 0)
-        direction = MECANUMBOT_DIRECTION_FORWARD_LEFT;
+        this->direction = MECANUMBOT_DIRECTION_FORWARD_LEFT;
     else if(linear_x < 0 && angular_z > 0)
-        direction = MECANUMBOT_DIRECTION_BACKWARD_RIGHT;
+        this->direction = MECANUMBOT_DIRECTION_BACKWARD_RIGHT;
     else if(linear_x < 0 && angular_z < 0)
-        direction = MECANUMBOT_DIRECTION_BACKWARD_LEFT;
+        this->direction = MECANUMBOT_DIRECTION_BACKWARD_LEFT;
         
     double x_vel = fmin(fabs(linear_x*MAX_VEL), MAX_VEL);
     double z_vel = fmin(fabs(angular_z*MAX_VEL), MAX_VEL);
@@ -77,69 +74,69 @@ void set_direction(struct Mecanumbot *this, double linear_x, double angular_z)
     x_vel = x_vel >= MIN_VEL? x_vel: 0.0;
     z_vel = z_vel >= MIN_VEL? z_vel: 0.0;
 
-    switch (direction)
+    switch (this->direction)
     {
-    case MECANUMBOT_DIRECTION_FORWARD:
-        set_motor_speed(this->motor1, x_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor2, x_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor3, x_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor4, x_vel, BIMOTOR_FORWARD);
-        break;
-    case MECANUMBOT_DIRECTION_BACKWARD:
-        set_motor_speed(this->motor1, x_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor2, x_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor3, x_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor4, x_vel, BIMOTOR_BACKWARD);
-        break;
-    case MECANUMBOT_DIRECTION_RIGHT:
-        set_motor_speed(this->motor1, z_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor2, z_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor3, z_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor4, z_vel, BIMOTOR_BACKWARD);
-        break;
-    case MECANUMBOT_DIRECTION_LEFT:
-        set_motor_speed(this->motor1, z_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor2, z_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor3, z_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor4, z_vel, BIMOTOR_FORWARD);
-        break;
-    case MECANUMBOT_DIRECTION_FORWARD_RIGHT:
-        set_motor_speed(this->motor1, x_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor2, 0, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor3, x_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor4, 0, BIMOTOR_FORWARD);
-        break;
-    case MECANUMBOT_DIRECTION_FORWARD_LEFT:
-        set_motor_speed(this->motor1, 0, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor2, x_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor3, 0, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor4, x_vel, BIMOTOR_FORWARD);
-        break;
-    case MECANUMBOT_DIRECTION_BACKWARD_RIGHT:
-        set_motor_speed(this->motor1, x_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor2, 0, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor3, x_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor4, 0, BIMOTOR_FORWARD);
-        break;
-    case MECANUMBOT_DIRECTION_BACKWARD_LEFT:
-        set_motor_speed(this->motor1, 0, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor2, x_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor3, 0, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor4, x_vel, BIMOTOR_BACKWARD);
-        break;
-    case MECANUMBOT_DIRECTION_CLOCKWISE:
-        set_motor_speed(this->motor1, x_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor2, x_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor3, x_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor4, x_vel, BIMOTOR_FORWARD);
-        break;
-    case MECANUMBOT_DIRECTION_COUNTER_CLOCKWISE:
-        set_motor_speed(this->motor1, x_vel, BIMOTOR_BACKWARD);
-        set_motor_speed(this->motor2, x_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor3, x_vel, BIMOTOR_FORWARD);
-        set_motor_speed(this->motor4, x_vel, BIMOTOR_BACKWARD);
-        break;
-    default:
-        break;
+        case MECANUMBOT_DIRECTION_FORWARD:
+            set_motor_speed(this->motor1, x_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor2, x_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor3, x_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor4, x_vel, BIMOTOR_FORWARD);
+            break;
+        case MECANUMBOT_DIRECTION_BACKWARD:
+            set_motor_speed(this->motor1, x_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor2, x_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor3, x_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor4, x_vel, BIMOTOR_BACKWARD);
+            break;
+        case MECANUMBOT_DIRECTION_RIGHT:
+            set_motor_speed(this->motor1, z_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor2, z_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor3, z_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor4, z_vel, BIMOTOR_BACKWARD);
+            break;
+        case MECANUMBOT_DIRECTION_LEFT:
+            set_motor_speed(this->motor1, z_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor2, z_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor3, z_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor4, z_vel, BIMOTOR_FORWARD);
+            break;
+        case MECANUMBOT_DIRECTION_FORWARD_RIGHT:
+            set_motor_speed(this->motor1, x_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor2, 0, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor3, x_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor4, 0, BIMOTOR_FORWARD);
+            break;
+        case MECANUMBOT_DIRECTION_FORWARD_LEFT:
+            set_motor_speed(this->motor1, 0, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor2, x_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor3, 0, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor4, x_vel, BIMOTOR_FORWARD);
+            break;
+        case MECANUMBOT_DIRECTION_BACKWARD_RIGHT:
+            set_motor_speed(this->motor1, x_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor2, 0, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor3, x_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor4, 0, BIMOTOR_FORWARD);
+            break;
+        case MECANUMBOT_DIRECTION_BACKWARD_LEFT:
+            set_motor_speed(this->motor1, 0, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor2, x_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor3, 0, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor4, x_vel, BIMOTOR_BACKWARD);
+            break;
+        case MECANUMBOT_DIRECTION_CLOCKWISE:
+            set_motor_speed(this->motor1, x_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor2, x_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor3, x_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor4, x_vel, BIMOTOR_FORWARD);
+            break;
+        case MECANUMBOT_DIRECTION_COUNTER_CLOCKWISE:
+            set_motor_speed(this->motor1, x_vel, BIMOTOR_BACKWARD);
+            set_motor_speed(this->motor2, x_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor3, x_vel, BIMOTOR_FORWARD);
+            set_motor_speed(this->motor4, x_vel, BIMOTOR_BACKWARD);
+            break;
+        default:
+            break;
     }
 }

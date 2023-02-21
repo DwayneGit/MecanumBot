@@ -34,36 +34,20 @@
 #define BRIDGE2_IN4 14
 #define BRIDGE2_ENCB 21
 
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Aborting.\n",__LINE__,(int)temp_rc); return 1;}}
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Continuing.\n",__LINE__,(int)temp_rc);}}
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Aborting.\n\r",__LINE__,(int)temp_rc); return 1;}}
+#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Continuing.\n\r",__LINE__,(int)temp_rc);}}
 
 struct Mecanumbot *mecanumbot;
-
-rcl_subscription_t subscriber;
 
 rcl_publisher_t pubFrontRightTicks;
 rcl_publisher_t pubFrontLeftTicks;
 rcl_publisher_t pubRearRightTicks;
 rcl_publisher_t pubRearLeftTicks;
+rcl_subscription_t subscriber;
+geometry_msgs__msg__Twist twist_msg;
 
 void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 {
-	printf("Last callback time: %ld, Motor Ticks: \n\r", 
-        last_call_time
-    );
-	printf("%d\n\r",
-        mecanumbot->motor1->encoderTickCount
-    );
-	printf("%d\n\r", 
-        mecanumbot->motor2->encoderTickCount
-    );
-	printf("%d\n\r", 
-        mecanumbot->motor3->encoderTickCount
-    );
-	printf("%d\n\r", 
-        mecanumbot->motor4->encoderTickCount
-    );
-
 	if (timer != NULL) {
         RCSOFTCHECK(rcl_publish(&pubFrontRightTicks, &mecanumbot->motor1->encoderTickCount, NULL));
         RCSOFTCHECK(rcl_publish(&pubFrontLeftTicks, &mecanumbot->motor2->encoderTickCount, NULL));
@@ -75,7 +59,6 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
 void subscription_callback(const void * msgin)
 {
     geometry_msgs__msg__Twist * msg = (geometry_msgs__msg__Twist *) msgin;
-    set_on(mecanumbot);
     set_direction(mecanumbot, msg->linear.x, msg->angular.z);
 }
 
@@ -118,12 +101,6 @@ int main()
 		pico_serial_transport_read
 	);
 
-    rcl_node_t node;
-    rcl_timer_t timer;
-    rclc_support_t support;
-    rclc_executor_t executor;
-    rcl_allocator_t allocator;
-
     stdio_init_all();
 
     gpio_init(PICO_DEFAULT_LED_PIN);
@@ -149,68 +126,68 @@ int main()
     
     irq_set_enabled(IO_IRQ_BANK0, true);
 
-    struct BiMotor mot1 = bimotor_new(1, BRIDGE1_ENB, BRIDGE1_IN3, BRIDGE1_IN4, BRIDGE1_ENCA, 2000);
-    struct BiMotor mot2 = bimotor_new(2, BRIDGE1_ENA, BRIDGE1_IN1, BRIDGE1_IN2, BRIDGE1_ENCB, 2000);
-    struct BiMotor mot3 = bimotor_new(3, BRIDGE2_ENA, BRIDGE2_IN1, BRIDGE2_IN2, BRIDGE2_ENCA, 2000);
-    struct BiMotor mot4 = bimotor_new(4, BRIDGE2_ENB, BRIDGE2_IN3, BRIDGE2_IN4, BRIDGE2_ENCB, 2000);
-   
-    mecanumbot_new(&mecanumbot, &mot1, &mot2, &mot3, &mot4);
+    mecanumbot = mecanumbot_init();
 
-	printf("%d %d %d %d\n\r",
-        mecanumbot->motor1->encoderTickCount,
-        mecanumbot->motor2->encoderTickCount,
-        mecanumbot->motor3->encoderTickCount,
-        mecanumbot->motor4->encoderTickCount
-    );
-    allocator = rcl_get_default_allocator();
-    
+    rclc_support_t support;
+    rcl_allocator_t allocator = rcl_get_default_allocator();
     RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+
+    const int timeout_ms = 1000; 
+    const uint8_t attempts = 120;
+    RCCHECK(rmw_uros_ping_agent(timeout_ms, attempts));
+
+    rcl_node_t node;
     RCCHECK(rclc_node_init_default(&node, "motor_controller", "", &support));
-	RCCHECK(rclc_executor_init(
-        &executor,
-        &support.context, 
-        1, 
-        &allocator
+
+    (rclc_publisher_init_default(&pubFrontRightTicks, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "front_right_ticks"));
+    (rclc_publisher_init_default(&pubFrontLeftTicks, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "front_left_ticks"));
+    (rclc_publisher_init_default(&pubRearRightTicks, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "rear_right_ticks"));
+    (rclc_publisher_init_default(&pubRearLeftTicks, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "rear_left_ticks"));
+
+    RCCHECK(rclc_subscription_init_default(
+        &subscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+        "cmd_vel"
     ));
-
-    RCCHECK(rclc_publisher_init_default(&pubFrontRightTicks, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "front_right_ticks"));
-    RCCHECK(rclc_publisher_init_default(&pubFrontLeftTicks, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "front_left_ticks"));
-    RCCHECK(rclc_publisher_init_default(&pubRearRightTicks, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "rear_right_ticks"));
-    RCCHECK(rclc_publisher_init_default(&pubRearLeftTicks, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "rear_left_ticks"));
-
-    // RCCHECK(rclc_subscription_init_default(
-    //     &subscriber,
-    //     &node,
-    //     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-    //     "cmd_vel"
-    // ));
-
-    // geometry_msgs__msg__Twist twist_msg;
-    // RCCHECK(rclc_executor_add_subscription(
-    //     &executor, 
-    //     &subscriber, 
-    //     &twist_msg,
-    //     &subscription_callback, 
-    //     ON_NEW_DATA
-    // ));
     
-    const unsigned int timer_period = RCL_MS_TO_NS(1000);
+    rcl_timer_t timer;
+    const unsigned int timer_period = RCL_MS_TO_NS(100);
     RCCHECK(rclc_timer_init_default(&timer, &support, timer_period, timer_callback));
 
+    rclc_executor_t executor = rclc_executor_get_zero_initialized_executor();
+    RCCHECK(rclc_executor_init(
+        &executor,
+        &support.context, 
+        2, 
+        &allocator
+    ));
     RCCHECK(rclc_executor_add_timer(&executor, &timer));
+    RCCHECK(rclc_executor_add_subscription(
+        &executor, 
+        &subscriber, 
+        &twist_msg,
+        &subscription_callback, 
+        ON_NEW_DATA
+    ));
+    
+    set_on(mecanumbot);
 
-    // printf("%i %i\n\r", ENCODER_MIN, ENCODER_MAX);
-    rclc_executor_spin(&executor);
+    // rclc_executor_spin(&executor);
+    while (true) {
+        rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+    }
 
+    mecanumbot_destroy(mecanumbot);
     RCCHECK(rclc_executor_fini(&executor));
-	RCCHECK(rcl_subscription_fini(&subscriber, &node));
+    RCCHECK(rcl_subscription_fini(&subscriber, &node));
     RCCHECK(rcl_publisher_fini(&pubFrontRightTicks, &node));   
     RCCHECK(rcl_publisher_fini(&pubFrontLeftTicks, &node));   
     RCCHECK(rcl_publisher_fini(&pubRearRightTicks, &node));   
     RCCHECK(rcl_publisher_fini(&pubRearLeftTicks,  &node));    
-	RCCHECK(rcl_node_fini(&node));
+    RCCHECK(rcl_node_fini(&node));
     RCCHECK(rcl_timer_fini(&timer));
     RCCHECK(rclc_support_fini(&support))
-
+    
     return 0;
 }

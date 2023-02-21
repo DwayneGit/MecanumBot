@@ -1,8 +1,9 @@
 #include "../include/micro_ros_motor_ctrl/bimotor.h"
 #include "../include/micro_ros_motor_ctrl/pwm.h"
 #include "../include/micro_ros_motor_ctrl/events.h"
+#include <stdlib.h>
 
-struct BiMotor bimotor_new(int motNum, uint gpioEn, uint gpioFor, uint gpioBack, uint gpioEncoderOut, uint frequency)
+struct BiMotor * bimotor_init(int motNum, uint gpioEn, uint gpioFor, uint gpioBack, uint gpioEncoderOut, uint frequency)
 {
     gpio_set_function(gpioEn, GPIO_FUNC_PWM);
 
@@ -21,22 +22,28 @@ struct BiMotor bimotor_new(int motNum, uint gpioEn, uint gpioFor, uint gpioBack,
 
     pwm_set_duty(slice, ENchannel, 0);
 
-    struct BiMotor biMotor;
-    biMotor.gpioEnabled = gpioEn;
-    biMotor.slice = slice;
-    biMotor.ENchan = ENchannel;
-    biMotor.gpioEncOut = gpioEncoderOut;
-    biMotor.gpioForward = gpioFor;
-    biMotor.gpioBackward = gpioBack;
-    biMotor.motorNum = motNum;
-    biMotor.freq = frequency;
-    biMotor.speed = 0;
-    biMotor.direction = BIMOTOR_FORWARD;
-    biMotor.resolution = pwm_set_freq_duty(slice, ENchannel, frequency, 0);
-    biMotor.encoderTickCount = 0;
-    biMotor.on = false;
-
+    struct BiMotor * biMotor;
+    biMotor = (struct BiMotor *) malloc(sizeof(struct BiMotor));
+    
+    biMotor->gpioEnabled = gpioEn;
+    biMotor->slice = slice;
+    biMotor->ENchan = ENchannel;
+    biMotor->gpioEncOut = gpioEncoderOut;
+    biMotor->gpioForward = gpioFor;
+    biMotor->gpioBackward = gpioBack;
+    biMotor->motorNum = motNum;
+    biMotor->freq = frequency;
+    biMotor->speed = 0;
+    biMotor->direction = BIMOTOR_FORWARD;
+    biMotor->resolution = pwm_set_freq_duty(slice, ENchannel, frequency, 0);
+    biMotor->encoderTickCount = 0;
+    biMotor->on = false;
+    
     return biMotor;
+}
+
+void bimotor_destroy(struct BiMotor *this){
+    free(this);
 }
 
 void set_motor_speed(struct BiMotor *this, double vel, bool direction)

@@ -4,6 +4,31 @@
 #include <stdio.h>
 #include "bimotor.h"
 
+// Motor 1 GPIO
+#define BRIDGE1_ENB 2
+#define BRIDGE1_IN3 4
+#define BRIDGE1_IN4 3
+#define BRIDGE1_ENCB 19
+
+// Motor 2 GPIO
+#define BRIDGE1_ENA 8 
+#define BRIDGE1_IN1 7
+#define BRIDGE1_IN2 6
+#define BRIDGE1_ENCA 18
+
+// Motor 3 GPIO
+#define BRIDGE2_ENA 10
+#define BRIDGE2_IN1 11
+#define BRIDGE2_IN2 12
+#define BRIDGE2_ENCA 20
+
+// Motor 4 GPIO
+#define BRIDGE2_ENB 15
+#define BRIDGE2_IN3 13
+#define BRIDGE2_IN4 14
+#define BRIDGE2_ENCB 21
+
+// Directions 
 #define MECANUMBOT_DIRECTION_FORWARD 0
 #define MECANUMBOT_DIRECTION_BACKWARD 1
 #define MECANUMBOT_DIRECTION_RIGHT 2
@@ -28,24 +53,19 @@ static int chars_rxed = 0;
 
 struct Mecanumbot
 {
-    uint direction;
     bool on;
-    struct BiMotor* motor1;
-    struct BiMotor* motor2;
-    struct BiMotor* motor3;
-    struct BiMotor* motor4;
+    uint direction;
+    struct BiMotor * motor1;
+    struct BiMotor * motor2;
+    struct BiMotor * motor3;
+    struct BiMotor * motor4;
 };
 
 void set_on(struct Mecanumbot *this);
 void set_off(struct Mecanumbot *this);
+void mecanumbot_destroy(struct Mecanumbot *this);
 void set_direction(struct Mecanumbot *this, double linear_x, double angular_z);
 
-void mecanumbot_new(
-    struct Mecanumbot ** _mbot,
-    struct BiMotor *m1, 
-    struct BiMotor *m2, 
-    struct BiMotor *m3, 
-    struct BiMotor *m4
-);
+struct Mecanumbot * mecanumbot_init();
 
 #endif
