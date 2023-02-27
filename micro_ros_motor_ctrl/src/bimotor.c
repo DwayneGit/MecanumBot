@@ -37,7 +37,9 @@ struct BiMotor * bimotor_init(int motNum, uint gpioEn, uint gpioFor, uint gpioBa
     biMotor->direction = BIMOTOR_FORWARD;
     biMotor->resolution = pwm_set_freq_duty(slice, ENchannel, frequency, 0);
     biMotor->encoderTickCount = 0;
-    biMotor->on = false;
+    biMotor->on = true;
+    
+    pwm_set_enabled(biMotor->slice, biMotor->on);
     
     return biMotor;
 }
@@ -51,12 +53,6 @@ void set_motor_speed(struct BiMotor *this, double vel, bool direction)
     set_motor_direction(this, direction);
     pwm_set_duty(this->slice, this->ENchan, vel);
     this->speed = vel;
-}
-
-void set_motor_on(struct BiMotor *this)
-{
-    this->on = true;
-    pwm_set_enabled(this->slice, this->on);
 }
 
 void set_motor_off(struct BiMotor *this)

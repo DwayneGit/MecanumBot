@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.12)
 
-
-set(MICRO_ROS_PICO_SDK_DIR $ENV{HOME}/micro_ros_ws/src/micro_ros_raspberrypi_pico_sdk)
 set(INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/micro_ros_motor_ctrl)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 set(SOURCES
-    micro_ros_motor_ctrl.c
-    # micro_ros_motor_ctrl_multi_threaded.c
+    # micro_ros_motor_ctrl.c
+    micro_ros_motor_ctrl_multi_threaded.c
+    # ${CMAKE_CURRENT_SOURCE_DIR}/examples/multithread_publisher_subscriber/main.c
     ${SRC_DIR}/pwm.c
     ${SRC_DIR}/events.c
     ${SRC_DIR}/bimotor.c
@@ -27,7 +26,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-link_directories(${MICRO_ROS_PICO_SDK_DIR}/libmicroros)
+link_directories($ENV{MICRO_ROS_PICO_SDK_PATH}/libmicroros)
 add_executable(micro_ros_motor_ctrl
     ${SOURCES}
 )
@@ -39,7 +38,11 @@ target_link_libraries(micro_ros_motor_ctrl
 )
 
 target_include_directories(micro_ros_motor_ctrl PUBLIC
-    ${MICRO_ROS_PICO_SDK_DIR}/libmicroros/include 
+    $ENV{MICRO_ROS_PICO_SDK_PATH}/libmicroros/include 
+)
+
+target_compile_definitions(micro_ros_motor_ctrl PUBLIC
+    PICO_MAX_SHARED_IRQ_HANDLERS=7
 )
 
 SET(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections")

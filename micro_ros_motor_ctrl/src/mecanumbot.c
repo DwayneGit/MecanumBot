@@ -14,7 +14,7 @@ struct Mecanumbot * mecanumbot_init()
     mbot->motor2 = bimotor_init(2, BRIDGE1_ENA, BRIDGE1_IN1, BRIDGE1_IN2, BRIDGE1_ENCB, 2000);
     mbot->motor3 = bimotor_init(3, BRIDGE2_ENA, BRIDGE2_IN1, BRIDGE2_IN2, BRIDGE2_ENCA, 2000);
     mbot->motor4 = bimotor_init(4, BRIDGE2_ENB, BRIDGE2_IN3, BRIDGE2_IN4, BRIDGE2_ENCB, 2000);
-
+    
     return mbot;
 }
 
@@ -39,14 +39,6 @@ void set_off(struct Mecanumbot *this)
     // set_motor_off();
 }
 
-void set_on(struct Mecanumbot *this)
-{
-    set_motor_on(this->motor1);
-    set_motor_on(this->motor2);
-    set_motor_on(this->motor3);
-    set_motor_on(this->motor4);
-}
-
 void set_direction(struct Mecanumbot *this, double linear_x, double angular_z)
 {
     if(linear_x > 0 && angular_z == 0)
@@ -69,7 +61,7 @@ void set_direction(struct Mecanumbot *this, double linear_x, double angular_z)
     double x_vel = fmin(fabs(linear_x*MAX_VEL), MAX_VEL);
     double z_vel = fmin(fabs(angular_z*MAX_VEL), MAX_VEL);
 
-    printf("x: %.2f, y: %.2f\n\r", x_vel, z_vel);
+    // printf("x: %.2f, y: %.2f\n\r", x_vel, z_vel);
 
     x_vel = x_vel >= MIN_VEL? x_vel: 0.0;
     z_vel = z_vel >= MIN_VEL? z_vel: 0.0;

@@ -61,7 +61,6 @@ struct Mecanumbot
     struct BiMotor * motor4;
 };
 
-void set_on(struct Mecanumbot *this);
 void set_off(struct Mecanumbot *this);
 void mecanumbot_destroy(struct Mecanumbot *this);
 void set_direction(struct Mecanumbot *this, double linear_x, double angular_z);

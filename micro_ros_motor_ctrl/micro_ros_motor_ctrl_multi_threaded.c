@@ -1,12 +1,13 @@
-#include <stdio.h>
+
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 #include <rcl/error_handling.h>
-#include <std_msgs/msg/int32.h>
-#include <std_msgs/msg/int16.h>
 #include <geometry_msgs/msg/twist.h>
 #include <rmw_microros/rmw_microros.h>
+
+#include <std_msgs/msg/int16.h>
+#include <micro_ros_utilities/type_utilities.h>
 
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
@@ -15,35 +16,36 @@
 #include "include/micro_ros_motor_ctrl/mecanumbot.h"
 #include "include/micro_ros_motor_ctrl/pico_uart_transports.h"
 
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+#include <stdlib.h>
+
+#define FLAG_VALUE 123
+#define PUBLISHER_NUMBER 4
+
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Aborting.\n\r",__LINE__,(int)temp_rc); return 1;}}
 #define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Continuing.\n\r",__LINE__,(int)temp_rc);}}
 
 struct Mecanumbot *mecanumbot;
 
-rcl_publisher_t pubFrontRightTicks;
-rcl_publisher_t pubFrontLeftTicks;
-rcl_publisher_t pubRearRightTicks;
-rcl_publisher_t pubRearLeftTicks;
+rcl_node_t node;
+rcl_subscription_t subscriber;
+rcl_publisher_t publisher1;
+rcl_publisher_t publisher2;
+rcl_publisher_t publisher3;
+rcl_publisher_t publisher4;
+
+volatile bool exit_flag = false;
 
 typedef struct {
-    rcl_node_t node;
-    rcl_allocator_t allocator;
-    rclc_support_t support;
+    struct Mecanumbot * mecanumbot;
+    rcl_publisher_t * publisher1;
+    rcl_publisher_t * publisher2;
+    rcl_publisher_t * publisher3;
+    rcl_publisher_t * publisher4;
+    int flag;
 } queue_node_req_t;
-
-void timer_callback(rcl_timer_t * timer, int64_t last_call_time)
-{
-	printf("Last callback time: %ld, Motor Ticks: \n\r", 
-        last_call_time
-    );
-
-	if (timer != NULL) {
-        RCSOFTCHECK(rcl_publish(&pubFrontRightTicks, &mecanumbot->motor1->encoderTickCount, NULL));
-        RCSOFTCHECK(rcl_publish(&pubFrontLeftTicks, &mecanumbot->motor2->encoderTickCount, NULL));
-        RCSOFTCHECK(rcl_publish(&pubRearRightTicks, &mecanumbot->motor3->encoderTickCount, NULL));
-        RCSOFTCHECK(rcl_publish(&pubRearLeftTicks,  &mecanumbot->motor4->encoderTickCount, NULL));
-	}
-}
 
 void subscription_callback(const void * msgin)
 {
@@ -79,63 +81,47 @@ void wheel4_enc_tick(void){
     }
 }
 
-#define FLAG_VALUE 123
 queue_t node1_queue;
-
 void core1_entry() {
-    queue_node_req_t node1;
-    rcl_timer_t timer;
-    rclc_executor_t executor;
+	queue_node_req_t args;
+
+    gpio_set_irq_enabled(BRIDGE1_ENCA, GPIO_IRQ_EDGE_RISE, true);
+    gpio_set_irq_enabled(BRIDGE1_ENCB, GPIO_IRQ_EDGE_RISE, true);
+    gpio_set_irq_enabled(BRIDGE2_ENCA, GPIO_IRQ_EDGE_RISE, true);
+    gpio_set_irq_enabled(BRIDGE2_ENCB, GPIO_IRQ_EDGE_RISE, true);
+
+    gpio_add_raw_irq_handler(BRIDGE1_ENCA, wheel1_enc_tick);
+    gpio_add_raw_irq_handler(BRIDGE1_ENCB, wheel2_enc_tick);
+    gpio_add_raw_irq_handler(BRIDGE2_ENCA, wheel3_enc_tick);
+    gpio_add_raw_irq_handler(BRIDGE2_ENCB, wheel4_enc_tick);
+    
+    irq_set_enabled(IO_IRQ_BANK0, true);
     
     multicore_fifo_push_blocking(FLAG_VALUE);
+    printf("Waiting for core 0...\n\r");
 
-    uint32_t g = multicore_fifo_pop_blocking();
-    if (g != FLAG_VALUE)
+    queue_remove_blocking(&node1_queue, &args);
+    rcl_publisher_t * publisher1 = args.publisher1;
+    rcl_publisher_t * publisher2 = args.publisher2;
+    rcl_publisher_t * publisher3 = args.publisher3;
+    rcl_publisher_t * publisher4 = args.publisher4;
+    struct Mecanumbot * mbot = args.mecanumbot;
+    int id = args.flag;
+
+    if (id != FLAG_VALUE)
         printf("Hmm, that's not right on core 1!\n\r");
-    else{
-        queue_remove_blocking(&node1_queue, &node1);
+    else {
+        uint32_t period_us =  1e6 + ((rand()) % 10) * 1e5;
+        while (!exit_flag) {
+            struct timespec ts;
+            clock_gettime(CLOCK_REALTIME, &ts);
 
-        gpio_set_irq_enabled(BRIDGE1_ENCA, GPIO_IRQ_EDGE_RISE, true);
-        gpio_set_irq_enabled(BRIDGE1_ENCB, GPIO_IRQ_EDGE_RISE, true);
-        gpio_set_irq_enabled(BRIDGE2_ENCA, GPIO_IRQ_EDGE_RISE, true);
-        gpio_set_irq_enabled(BRIDGE2_ENCB, GPIO_IRQ_EDGE_RISE, true);
-
-        gpio_add_raw_irq_handler(BRIDGE1_ENCA, wheel1_enc_tick);
-        gpio_add_raw_irq_handler(BRIDGE1_ENCB, wheel2_enc_tick);
-        gpio_add_raw_irq_handler(BRIDGE2_ENCA, wheel3_enc_tick);
-        gpio_add_raw_irq_handler(BRIDGE2_ENCB, wheel4_enc_tick);
-        
-        irq_set_enabled(IO_IRQ_BANK0, true);
-
-        RCSOFTCHECK(rclc_executor_init(
-            &executor,
-            &node1.support.context, 
-            1, 
-            &node1.allocator
-        ));
-
-        RCSOFTCHECK(rclc_publisher_init_default(&pubFrontRightTicks, &node1.node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "front_right_ticks"));
-        // RCSOFTCHECK(rclc_publisher_init_default(&pubFrontLeftTicks, &node1.node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "front_left_ticks"));
-        // RCSOFTCHECK(rclc_publisher_init_default(&pubRearRightTicks, &node1.node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "rear_right_ticks"));
-        // RCSOFTCHECK(rclc_publisher_init_default(&pubRearLeftTicks, &node1.node, ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), "rear_left_ticks"));
-        
-        const unsigned int timer_period = RCL_MS_TO_NS(100);
-        RCSOFTCHECK(rclc_timer_init_default(&timer, &node1.support, timer_period, timer_callback));
-        RCSOFTCHECK(rclc_executor_add_timer(&executor, &timer));
-        printf("Its all gone well on core 1!\n\r");
-
-        // rclc_executor_spin(&executor);
-        while (true) {
-            // rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+            RCSOFTCHECK(rcl_publish(publisher1, &mbot->motor1->encoderTickCount, NULL));
+            RCSOFTCHECK(rcl_publish(publisher2, &mbot->motor2->encoderTickCount, NULL));
+            RCSOFTCHECK(rcl_publish(publisher3, &mbot->motor3->encoderTickCount, NULL));
+            RCSOFTCHECK(rcl_publish(publisher4, &mbot->motor4->encoderTickCount, NULL));
+            usleep(period_us);
         }
-
-        RCSOFTCHECK(rclc_executor_fini(&executor));
-        RCSOFTCHECK(rcl_publisher_fini(&pubFrontRightTicks, &node1.node));   
-        RCSOFTCHECK(rcl_publisher_fini(&pubFrontLeftTicks, &node1.node));   
-        RCSOFTCHECK(rcl_publisher_fini(&pubRearRightTicks, &node1.node));   
-        RCSOFTCHECK(rcl_publisher_fini(&pubRearLeftTicks,  &node1.node));    
-        RCSOFTCHECK(rcl_node_fini(&node1.node));
-        RCSOFTCHECK(rcl_timer_fini(&timer));
     }
 }
 
@@ -150,86 +136,95 @@ int main()
 		pico_serial_transport_read
 	);
 
-
     stdio_init_all();
 
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
-    gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
-    gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
+    // gpio_set_function(UART_TX_PIN, GPIO_FUNC_UART);
+    // gpio_set_function(UART_RX_PIN, GPIO_FUNC_UART);
 
     queue_init(&node1_queue, sizeof(queue_node_req_t), 2);
 
-    // // Turn off FIFO's - we want to do this character by character
-    // uart_set_fifo_enabled(UART_ID, false);
-
     gpio_put(PICO_DEFAULT_LED_PIN, 1);
 
-    rclc_support_t support;
     rcl_allocator_t allocator = rcl_get_default_allocator();
+    rclc_support_t support;
+
     RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+
+    RCCHECK(rclc_node_init_default(&node, "motor_controller", "", &support));
+    
+    RCCHECK(rclc_publisher_init_default(
+        &publisher1, 
+        &node, 
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), 
+        "front_right_ticks"));
+
+    RCCHECK(rclc_publisher_init_default(
+        &publisher2, 
+        &node, 
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), 
+        "front_left_ticks"));
+
+    RCCHECK(rclc_publisher_init_default(
+        &publisher3, 
+        &node, 
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), 
+        "rear_right_ticks"));
+
+    RCCHECK(rclc_publisher_init_default(
+        &publisher4, 
+        &node, 
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16), 
+        "rear_left_ticks"));
+
+    RCCHECK(rclc_subscription_init_default(
+        &subscriber,
+        &node,
+        ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+        "cmd_vel"
+    ));
+
+    geometry_msgs__msg__Twist twist_msg;
+	rclc_executor_t executor = rclc_executor_get_zero_initialized_executor();
+    RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+    RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &twist_msg, &subscription_callback, ON_NEW_DATA));
+
+    mecanumbot = mecanumbot_init();
 
     multicore_launch_core1(core1_entry);
     uint32_t g = multicore_fifo_pop_blocking();
-
-    if (g != FLAG_VALUE)
+    if (g != FLAG_VALUE){
         printf("Hmm, that's not right on core 0!\n\r");
+        return 1;
+    }
     else {
-        mecanumbot_init(&mecanumbot);
+        queue_node_req_t args = {
+            mecanumbot,
+            &publisher1,
+            &publisher2,
+            &publisher3,
+            &publisher4, 
+            FLAG_VALUE
+        };
+        queue_add_blocking(&node1_queue, &args);
 
-        rcl_node_t node0;
-        RCCHECK(rclc_node_init_default(&node0, "motor_controller", "", &support));
-        rcl_node_t node1;
-        RCCHECK(rclc_node_init_default(&node1, "encoder_node", "", &support));
-        
-        multicore_fifo_push_blocking(FLAG_VALUE);
-        printf("It's all gone well on core 0!\n\r");
-        
-        queue_node_req_t node_req = {node1, allocator, support};
-        queue_add_blocking(&node1_queue, &node_req);
-        
-        rclc_executor_t executor;
-        RCCHECK(rclc_executor_init(
-            &executor,
-            &support.context, 
-            1, 
-            &allocator
-        ));
-
-        rcl_subscription_t subscriber;
-        geometry_msgs__msg__Twist twist_msg;
-        RCCHECK(rclc_subscription_init_default(
-            &subscriber,
-            &node0,
-            ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-            "cmd_vel"
-        ));
-        RCCHECK(rclc_executor_add_subscription(
-            &executor, 
-            &subscriber, 
-            &twist_msg,
-            &subscription_callback, 
-            ON_NEW_DATA
-        ));
-
-        set_on(mecanumbot);
-
+        const uint64_t timeout_ns = 100000000;
+        RCCHECK(rclc_executor_set_timeout(&executor,timeout_ns));
         rclc_executor_spin(&executor);
-
-        mecanumbot_destroy(mecanumbot);
-        RCCHECK(rcl_node_fini(&node0));
-        RCCHECK(rclc_executor_fini(&executor));
-        RCCHECK(rcl_subscription_fini(&subscriber, &node0));
-        RCCHECK(rcl_publisher_fini(&pubFrontRightTicks, &node0));   
-        RCCHECK(rclc_support_fini(&support))
     }
 
-    // printf("%i %i\n\r", ENCODER_MIN, ENCODER_MAX);
-    // while (true)
-    // {
-    //     rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
-    // }
+	exit_flag = true;
+    mecanumbot_destroy(mecanumbot);
+    RCCHECK(rclc_executor_fini(&executor));
+    RCCHECK(rcl_subscription_fini(&subscriber, &node));
+	RCCHECK(rcl_publisher_fini(&publisher1, &node));
+	RCCHECK(rcl_publisher_fini(&publisher2, &node));
+	RCCHECK(rcl_publisher_fini(&publisher3, &node));
+	RCCHECK(rcl_publisher_fini(&publisher4, &node));
+    RCCHECK(rclc_support_fini(&support))
+    RCCHECK(rcl_node_fini(&node));
 
     return 0;
 }

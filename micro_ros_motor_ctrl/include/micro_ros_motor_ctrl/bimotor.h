@@ -28,7 +28,6 @@ struct BiMotor
     bool on;
 };
 
-void set_motor_on(struct BiMotor *this);
 void set_motor_off(struct BiMotor *this);
 void bimotor_destroy(struct BiMotor *this);
 void get_encoder_data(struct BiMotor *this);
