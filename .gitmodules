@@ -1,3 +1,6 @@
 [submodule "mecanumbot_v1_ws/src/teleop_twist_joy"]
 	path = mecanumbot_v1_ws/src/teleop_twist_joy
 	url = https://github.com/ros2/teleop_twist_joy.git
+[submodule "micro_ros_motor_ctrl"]
+	path = micro_ros_motor_ctrl
+	url = https://github.com/DwayneGit/Mecanumbot-micro-ROS-motor-controller.git
