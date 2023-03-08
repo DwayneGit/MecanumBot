@@ -6,15 +6,41 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
+
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
-add_executable(mecanumbot_node src/mecanumbot_node.cpp)
+add_executable(mecanumbot_node 
+  src/mecanumbot_node.cpp 
+  src/odometry_pub.cpp 
+  include/mecanumbot/odometry_pub.hpp
+)
+ament_target_dependencies(mecanumbot_node 
+  rclcpp 
+  std_msgs 
+  tf2_geometry_msgs 
+  nav_msgs 
+  tf2_ros 
+  tf2
+)
+
+install(TARGETS
+  mecanumbot_node
+  DESTINATION lib/${PROJECT_NAME})
+
 target_include_directories(mecanumbot_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+
 target_compile_features(mecanumbot_node PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
 install(TARGETS mecanumbot_node

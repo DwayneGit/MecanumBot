@@ -1,10 +1,11 @@
 #include <cstdio>
+#include "../include/mecanumbot/odometry_pub.hpp"
 
-int main(int argc, char ** argv)
+int main(int argc, char** argv)
 {
-  (void) argc;
-  (void) argv;
-
-  printf("hello world mecanumbot package\n");
-  return 0;
+	rclcpp::init(argc, argv);
+	rclcpp::spin(std::make_shared<OdometryPublisher>());
+  rclcpp::shutdown();
+  
+	return 0;
 }
