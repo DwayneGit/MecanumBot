@@ -33,7 +33,7 @@ OdometryPublisher::OdometryPublisher() : Node("odometry_publisher")
 	BASE_WIDTH = 0.152*2; // 15.2 cm from wheel to center of robot
 	
 	// connects subs and pubs
-	enc_sub_  = create_subscription<std_msgs::msg::Float32MultiArray>(
+	enc_sub_  = create_subscription<std_msgs::msg::Int32MultiArray>(
 		"encoders", 10, 
 		std::bind(&OdometryPublisher::encoderCallback, this, std::placeholders::_1)
 	);
@@ -48,7 +48,7 @@ double OdometryPublisher::normalize_angle(double angle){
 	return angle;
 }
 
-void OdometryPublisher::encoderCallback(const std_msgs::msg::Float32MultiArray & encoders)
+void OdometryPublisher::encoderCallback(const std_msgs::msg::Int32MultiArray & encoders)
 {
 	// unpack the encoder message in base_link frame
 

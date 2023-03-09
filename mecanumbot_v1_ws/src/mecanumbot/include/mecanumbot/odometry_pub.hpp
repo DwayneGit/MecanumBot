@@ -3,7 +3,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include <nav_msgs/msg/odometry.hpp>
-#include <std_msgs/msg/float32_multi_array.hpp>
+#include <std_msgs/msg/int32_multi_array.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 
 #define PI 3.14159265
@@ -14,10 +14,10 @@ class OdometryPublisher : public rclcpp::Node
 		OdometryPublisher();
 
 	private:
-		void encoderCallback(const std_msgs::msg::Float32MultiArray & encoders);
+		void encoderCallback(const std_msgs::msg::Int32MultiArray & encoders);
         double normalize_angle(double angle);
 
-		rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr enc_sub_;
+		rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr enc_sub_;
 		rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
         rclcpp::Time last_enc_time;
 		std::unique_ptr<tf2_ros::TransformBroadcaster> odom_broadcaster_;
