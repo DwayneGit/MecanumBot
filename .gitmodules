@@ -4,3 +4,6 @@
 [submodule "micro_ros_motor_ctrl"]
 	path = micro_ros_motor_ctrl
 	url = https://github.com/DwayneGit/Mecanumbot-micro-ROS-motor-controller.git
+[submodule "mecanumbot_v1_ws/src/rplidar_ros"]
+	path = mecanumbot_v1_ws/src/rplidar_ros
+	url = https://github.com/Slamtec/rplidar_ros.git
